@@ -1,0 +1,11 @@
+bundle-stats.html
+node_modules/
+*.bundled.css
+*.compiled.d.ts
+*.min.css
+dist/
+junit.xml
+*storybook.log
+storybook-static/
+src/i18n/
+src/mockData/images/

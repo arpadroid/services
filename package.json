@@ -1,0 +1,42 @@
+{
+    "name": "@arpadroid/services",
+    "version": "1.0.0",
+    "description": "Global services",
+    "exports": "./dist/arpadroid-services.js",
+    "module": "./dist/arpadroid-services.js",
+    "browser": "./dist/arpadroid-services.js",
+    "type": "module",
+    "scripts": {
+        "build": "node ./node_modules/@arpadroid/arpadroid/scripts/build-project.mjs --project=services --minify",
+        "prepublish": "npm run build",
+        "test": "node ./node_modules/@arpadroid/arpadroid/scripts/test-project.mjs --project=services --jest --port=6018"
+    },
+    "repository": {
+        "type": "git",
+        "url": "git+https://github.com/arpadroid/services.git"
+    },
+    "keywords": [
+        "arpadroid",
+        "services"
+    ],
+    "author": "Andres Vaquero @arpadroid <web.andresvaquero@gmail.com>",
+    "license": "MIT",
+    "bugs": {
+        "url": "https://github.com/arpadroid/services/issues"
+    },
+    "homepage": "https://github.com/arpadroid/services#readme",
+    "devDependencies": {
+        "@arpadroid/arpadroid": "file:../arpadroid",
+        "@babel/core": "^7.23.9",
+        "@babel/plugin-syntax-import-assertions": "^7.23.3",
+        "@babel/preset-env": "^7.23.9",
+        "babel-jest": "^29.7.0",
+        "babel-loader": "^9.1.3",
+        "dts-bundle-generator": "^9.3.1",
+        "jsdoc-to-markdown": "^8.0.1",
+        "typescript": "^5.4.2"
+    },
+    "peerDependencies": {
+        "@arpadroid/tools": "file:../tools"
+    }
+}
