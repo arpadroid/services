@@ -2,7 +2,7 @@
  * @typedef {import ('./routerTypes').RouteInterface} RouteInterface
  * @typedef {import ('./routerTypes').RouterInterface} RouterInterface
  */
-import { sanitizeURL, ObserverTool, mergeObjects, clearLazyQueue } from '@arpadroid/tools';
+import { sanitizeURL, observerMixin, mergeObjects, clearLazyQueue } from '@arpadroid/tools';
 import { matchPath, matchPaths, editURL, getPathParts, getURLPath } from '@arpadroid/tools';
 
 // import { Page } from '../../modules/page/page.module.js';
@@ -42,7 +42,7 @@ class Router {
      * @param {RouterInterface} config - The component configuration.
      */
     constructor(config = {}) {
-        ObserverTool.mixin(this);
+        observerMixin(this);
         this.setConfig(config);
         this._initialize();
     }

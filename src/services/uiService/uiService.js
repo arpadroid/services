@@ -1,4 +1,4 @@
-import { ObserverTool, mergeObjects, onResize } from '@arpadroid/tools';
+import { observerMixin, mergeObjects, onResize } from '@arpadroid/tools';
 
 class UIService {
     pageWidth;
@@ -18,7 +18,7 @@ class UIService {
         desktopLarge: 1920
     };
     constructor(config = {}) {
-        ObserverTool.mixin(this);
+        observerMixin(this);
         this.setConfig(config);
         this.handleResize();
         this.initializeDarkMode();
