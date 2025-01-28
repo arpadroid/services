@@ -1,9 +1,18 @@
 import { mergeObjects, editURL } from '@arpadroid/tools';
 /**
- * @typedef {import('./apiServiceInterface').APIServiceInterface} APIServiceInterface
+ * @typedef {import('./apiService.types').APIServiceConfigType} APIServiceConfigType
+ * @typedef {import('./apiService.types').HeadersType} HeadersType
  */
 
 class APIService {
+    /**
+     * @static
+     */
+    /**
+     * Returns the configuration for the service.
+     * @param {APIServiceConfigType} config
+     * @returns {APIServiceConfigType}
+     */
     static getConfig(config = {}) {
         return mergeObjects(APIService.getDefaultConfig(), config);
     }
@@ -37,6 +46,12 @@ class APIService {
         };
     }
 
+    /**
+     * Preprocesses a URL by replacing placeholders with values from the params object.
+     * @param {string} url - The URL to preprocess.
+     * @param {Record<string, unknown>} params - The parameters to replace in the URL.
+     * @returns {string} - The preprocessed URL.
+     */
     static preprocessURL(url, params = {}) {
         for (const [key, value] of Object.entries(params)) {
             if (url.indexOf(`{${key}}`) !== -1) {
@@ -50,8 +65,8 @@ class APIService {
     /**
      * Fetches a resource from the API with GET.
      * @param {string} url
-     * @param {APIServiceInterface} _config
-     * @returns {Promise<Response>}
+     * @param {APIServiceConfigType} _config
+     * @returns {Promise<Record<string, any>>}
      */
     static async fetch(url, _config = {}) {
         const config = APIService.getConfig(_config);
@@ -67,8 +82,8 @@ class APIService {
     /**
      * Fetches a resource from the API with OPTIONS method.
      * @param {string} url
-     * @param {APIServiceInterface} config
-     * @returns {Promise<Response>}
+     * @param {APIServiceConfigType} config
+     * @returns {Promise<Record<string, any>>}
      */
     static options(url, config = {}) {
         config.method = 'OPTIONS';
@@ -78,8 +93,8 @@ class APIService {
     /**
      * POSTs to the API.
      * @param {string} url
-     * @param {APIServiceInterface} config
-     * @returns {Promise<Response>}
+     * @param {APIServiceConfigType} config
+     * @returns {Promise<Record<string, any>>}
      */
     static post(url, config = {}) {
         config.method = 'POST';
@@ -89,8 +104,8 @@ class APIService {
     /**
      * PUTs to the API.
      * @param {string} url
-     * @param {APIServiceInterface} config
-     * @returns {Promise<Response>}
+     * @param {APIServiceConfigType} config
+     * @returns {Promise<Record<string, any>>}
      */
     static put(url, config = {}) {
         config.method = 'PUT';
@@ -100,14 +115,19 @@ class APIService {
     /**
      * DELETEs from the API.
      * @param {string} url
-     * @param {APIServiceInterface} config
-     * @returns {Promise<Response>}
+     * @param {APIServiceConfigType} config
+     * @returns {Promise<Record<string, any>>}
      */
     static delete(url, config = {}) {
         config.method = 'DELETE';
         return APIService.fetch(url, config);
     }
 
+    /**
+     * Handles the fetch response.
+     * @param {Record<string, any>} response
+     * @returns {Promise<Record<string, any>>}
+     */
     static async onFetched(response) {
         if (response.status === 500) {
             return Promise.reject(response);
@@ -120,7 +140,12 @@ class APIService {
         return Promise.reject(response);
     }
 
-    static async onFetchSuccess(response = {}) {
+    /**
+     * Handles the fetch success.
+     * @param {Record<string, any>} response
+     * @returns {Promise<unknown>}
+     */
+    static async onFetchSuccess(response) {
         let rv = await response.text();
         if (rv && rv.trim().length) {
             try {
@@ -133,6 +158,12 @@ class APIService {
         return response.ok ? rv : Promise.reject(response);
     }
 
+    /**
+     * Downloads a file from the API.
+     * @param {string} url
+     * @param {Record<string, unknown>} queryParams
+     * @returns {Promise<Response>}
+     */
     static download(url, queryParams = {}) {
         url = APIService.preprocessUrl(url, queryParams);
         const headers = APIService.addAuth({
@@ -144,30 +175,68 @@ class APIService {
         });
     }
 
+    /**
+     * Handles the download response.
+     * @param {Response} response
+     * @returns {Promise<Response>}
+     */
     static handleDownload(response) {
-        const [, filename] = response.headers['content-disposition'].split('filename=');
+        const contentDisposition = response.headers.get('content-disposition') || '';
+        const [, filename] = contentDisposition.split('filename=');
         return response.blob().then(blob => {
             APIService.openFile(blob, filename);
             return response;
         });
     }
 
+    /**
+     * Opens a file in the browser.
+     * @param {Blob} blob
+     * @param {string} filename
+     * @returns {void}
+     */
+    static openFile(blob, filename) {
+        const url = URL.createObjectURL(blob);
+        const link = document.createElement('a');
+        link.href = url;
+        link.download = filename;
+        link.click();
+        URL.revokeObjectURL(url);
+    }
+
+    /**
+     * Uploads a file to the API.
+     * @param {string} url
+     * @param {File} file
+     * @param {Record<string, string>} headers
+     * @returns {Promise<Response>}
+     */
     static upload(url, file, headers = {}) {
         const body = new FormData();
         body.append('file', file);
         return fetch(url, { headers, body, method: 'POST' });
     }
 
-    static setAuthToken(headers = {}) {
-        const token = headers.get('authorization');
+    /**
+     * Sets the bearer token from the headers.
+     * @param {Headers} headers
+     * @returns {void}
+     */
+    static setAuthToken(headers) {
+        const token = headers?.get('authorization');
         if (token) {
             localStorage.setItem('auth-bearer-token', token);
         }
     }
 
-    static addAuth(headers = {}) {
+    /**
+     * Adds auth headers to the request.
+     * @param {HeadersType} headers
+     * @returns {HeadersType}
+     */
+    static addAuth(headers) {
         const bearerToken = localStorage.getItem('auth-bearer-token');
-        headers.authorization = bearerToken;
+        headers && (headers.authorization = bearerToken || '');
         return headers;
     }
 }

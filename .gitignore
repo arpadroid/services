@@ -9,3 +9,5 @@ junit.xml
 storybook-static/
 src/i18n/
 src/mockData/images/
+.types
+tsconfig.tsbuildinfo

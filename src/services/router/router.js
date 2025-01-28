@@ -514,6 +514,14 @@ class Router {
     // #endregion Is
     //////////////////////////////////
 
+    /**
+     * Navigates to the specified route.
+     * @param {string} _url
+     * @param {Record<string, any>} [params]
+     * @param {Record<string, any>} [config]
+     * @param {boolean} [encode]
+     * @returns {Promise<Record<string, any>>}
+     */
     async go(_url, params = {}, config = {}, encode = true) {
         return new Promise(resolve => {
             requestAnimationFrame(() => {
@@ -534,13 +542,14 @@ class Router {
     }
 
     goToParent() {
-        // const parentPath = UrlTool.getParentPath(this.getRoute());
+        const parentPath = getParentPath(this.getRoute());
+        this.go(parentPath);
     }
 
     /**
      * Returns the route params.
-     * @param {RouteInterface} route
-     * @returns {Record<string, string>}
+     * @param {RouteType} [route]
+     * @returns {Record<string, any>}
      */
     getRouteParams(route = this.getCurrentRoute()) {
         if (!route) {
@@ -548,12 +557,19 @@ class Router {
         }
         const urlParts = getPathParts(route.url);
         const pathParts = getPathParts(route.path);
+        /** @type {Record<string, any>} */
         const params = {};
-        pathParts.forEach((pathPart, index) => {
+        /**
+         * Processes a part of the path.
+         * @param {string} pathPart
+         * @param {number} index
+         */
+        const processPart = (pathPart, index) => {
             if (pathPart.startsWith(':')) {
                 params[pathPart.substr(1)] = urlParts[index];
             }
-        });
+        };
+        pathParts.forEach(processPart);
         return params;
     }
 
@@ -562,18 +578,23 @@ class Router {
     }
 
     fetchRoutes() {
-        if (!this._config.hasDatabaseRoutes) {
+        if (!this._config?.hasDatabaseRoutes) {
             return Promise.resolve({});
         }
-        // return APIService.fetch('/api/core/get-routes').then(response => {
-        //     const routes = response?.value?.payload ?? {};
-        //     for (const [routePath] of Object.entries(routes)) {
-        //         this.addDbRoute(`/${routePath}`);
-        //     }
-        //     return Promise.resolve(response);
-        // });
+        return APIService.fetch('/api/core/get-routes').then(response => {
+            const routes = response?.value?.payload ?? {};
+            for (const [routePath] of Object.entries(routes)) {
+                this.addDbRoute(`/${routePath}`);
+            }
+            return Promise.resolve(response);
+        });
     }
 
+    /**
+     * Returns true if the route exists.
+     * @param {string} path
+     * @returns {boolean}
+     */
     routeExists(path) {
         const route = this._findRoute(path);
         return Boolean(route);
