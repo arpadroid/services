@@ -14,22 +14,27 @@ class APIService {
      * @returns {APIServiceConfigType}
      */
     static getConfig(config = {}) {
-        return mergeObjects(APIService.getDefaultConfig(), config);
+        return mergeObjects(APIService.getDefaultConfig(config.method), config);
     }
 
-    static getDefaultConfig() {
-        const config = {
+    /**
+     * Returns the default configuration for the service.
+     * @param {string} method
+     * @returns {APIServiceConfigType}
+     */
+    static getDefaultConfig(method = 'GET') {
+        return {
             method: 'GET',
-            headers: APIService.getDefaultHeaders(),
-            query: {},
-            body: null
+            headers:
+                method?.toLowerCase() === 'post' ? APIService.getDefaultPostHeaders() : APIService.getDefaultHeaders(),
+            query: {}
         };
-        if (config?.method?.toLowerCase() === 'post') {
-            config.headers = APIService.getDefaultPostHeaders();
-        }
-        return config;
     }
 
+    /**
+     * Returns the default headers for the service.
+     * @returns {HeadersType}
+     */
     static getDefaultHeaders() {
         return {
             'Cache-Control': 'no-cache, no-store, must-revalidate',
@@ -55,7 +60,7 @@ class APIService {
     static preprocessURL(url, params = {}) {
         for (const [key, value] of Object.entries(params)) {
             if (url.indexOf(`{${key}}`) !== -1) {
-                url = url.replace(`{${key}}`, value);
+                url = url.replace(`{${key}}`, String(value));
                 delete params[key];
             }
         }
@@ -73,10 +78,10 @@ class APIService {
         return fetch(APIService.preprocessURL(url, config.query), {
             headers: config.headers,
             method: config.method,
-            body: config.body
+            body: config.body ? JSON.stringify(config.body) : undefined
         })
             .then(response => APIService.onFetched(response))
-            .catch(response => APIService.onFetchError(response, url, config));
+            .catch(response => APIService.onFetchError(response));
     }
 
     /**
@@ -165,7 +170,7 @@ class APIService {
      * @returns {Promise<Response>}
      */
     static download(url, queryParams = {}) {
-        url = APIService.preprocessUrl(url, queryParams);
+        url = APIService.preprocessURL(url, queryParams);
         const headers = APIService.addAuth({
             'Content-Type': 'application/octet-stream; charset=UTF-8',
             accept: '*/*'
