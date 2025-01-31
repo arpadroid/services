@@ -1,4 +1,5 @@
 const config = {
+    buildTypes: false,
     deps: []
 };
 
