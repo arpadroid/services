@@ -1,37 +1,26 @@
 /**
- * @typedef {import ('./routerTypes').RouteInterface} RouteInterface
- * @typedef {import ('./routerTypes').RouterInterface} RouterInterface
+ * @typedef {import ('./router.types').RouteType} RouteType
+ * @typedef {import ('./router.types').RouterConfigType} RouterConfigType
+ * @typedef {import ('./router.types').HistoryType} HistoryType
+ * @typedef {import ('./router.types').RouteTypeType}  RouteTypeType
  */
-import { sanitizeURL, observerMixin, mergeObjects, clearLazyQueue } from '@arpadroid/tools';
-import { matchPath, matchPaths, editURL, getPathParts, getURLPath } from '@arpadroid/tools';
+import { sanitizeURL, observerMixin, mergeObjects, clearLazyQueue, dummyListener, dummySignal } from '@arpadroid/tools';
+import { matchPath, matchPaths, editURL, getPathParts, getURLPath, getParentPath } from '@arpadroid/tools';
+import APIService from '../apiService/apiService';
 
 // import { Page } from '../../modules/page/page.module.js';
 
 class Router {
-    /** @type {RouterInterface} _config - Router Config. */
-    _config;
-    /** @type {string} route - The current route. */
-    route;
-    /** @type {RouteInterface} routeConfig */
+    /** @type {Record<string, RouteType>} */
+    routesByName = {};
+    /** @type {RouterConfigType} routeConfig */
     routeConfig = {};
-    /** @type {RouteInterface} */
-    _currentRoute;
-    /** @type {string} originalRoute - The original application route. */
-    originalRoute;
     /** @type {string} originalURL - The landing URL. */
     originalURL = window.location.href;
     /** @type {boolean} hasRouteChanged - Whether any navigation has ocurred within the application. */
     hasRouteChanged = false;
-    /** @type {string[]} */
-    history = [
-        {
-            url: sanitizeURL(window.location.href)
-        }
-    ];
-    /** @type {(property: string, value: unknown) => void} callObservers */
-    signal;
-    /** @type {(property: string, callback: () => unknown) => () => void} listen */
-    listen;
+    /** @type {HistoryType} */
+    history = [{ url: sanitizeURL(window.location.href) }];
 
     //////////////////////////
     // #region Initialization
@@ -39,15 +28,18 @@ class Router {
 
     /**
      * Creates an instance of Router.
-     * @param {RouterInterface} config - The component configuration.
+     * @param {RouterConfigType} config - The component configuration.
      */
     constructor(config = {}) {
+        this.on = dummyListener;
+        this.signal = dummySignal;
         observerMixin(this);
         this.setConfig(config);
         this._initialize();
     }
 
     setConfig(config = {}) {
+        /** @type {RouterConfigType} */
         this._config = mergeObjects(this.getDefaultConfig(), config);
     }
 
@@ -81,15 +73,25 @@ class Router {
     // #region Event Handlers
     //////////////////////////
 
+    /**
+     * Handles the popstate event.
+     * @param {PopStateEvent} event
+     */
     _onPopState(event) {
+        /** @type {RouteType} */
         const route = this._findRoute(window.location.href) || {};
-        route.url = window.location.href;
-        route.isPopState = true;
+        route && (route.url = window.location.href);
+        route && (route.isPopState = true);
         if (route) {
             this._onRouteChange(route, event);
         }
     }
 
+    /**
+     * Handles the navigation event.
+     * @param {MouseEvent} event
+     * @returns {boolean}
+     */
     _onNavigate(event) {
         /**
          * @todo Implement Context.KeyboardTool.
@@ -98,21 +100,27 @@ class Router {
         //     return;
         // }
         const target = event.target;
-        const link = target.closest('a') ?? target;
-        const tagName = link.tagName.toLowerCase();
-        if (tagName === 'a') {
+        const link = target instanceof HTMLElement && (target.closest('a') ?? target);
+        if (link && link instanceof HTMLLinkElement) {
             const route = this._findRoute(link.href);
             if (route) {
                 route.url = link.href;
                 route.isPopState = false;
                 event.preventDefault();
-                window.history.pushState(link.href, null, link.href);
+                window.history.pushState(link.href, '', link.href);
                 this._onRouteChange(route, event);
             }
         }
         return false;
     }
 
+    /**
+     * Handles the route change.
+     * @param {RouteType | undefined} route
+     * @param {Event | undefined} event
+     * @param {Record<string, any>} config
+     * @returns {Promise<Record<string, any>>}
+     */
     async _onRouteChange(route, event, config = {}) {
         return new Promise(resolve => {
             clearLazyQueue();
@@ -120,7 +128,9 @@ class Router {
                 if (!(event instanceof PopStateEvent)) {
                     this._addItemToHistory(route);
                 }
+                /** @type {RouteType} */
                 this._previousRoute = this._currentRoute;
+                /** @type {RouteType} */
                 this._currentRoute = route;
                 if (!route?.componentInstance && route?.component) {
                     this._instantiateRoute(route);
@@ -136,6 +146,15 @@ class Router {
         });
     }
 
+    /**
+     * Handles the route change.
+     * @param {{
+     * route: RouteType | undefined,
+     * previousRoute?: RouteType,
+     * config: Record<string, any>
+     * }} payload
+     * @returns {void}
+     */
     _onRouteChanged({ route, previousRoute, config = {} }) {
         const prevComponent = previousRoute?.componentInstance;
         const newComponent = route?.componentInstance;
@@ -162,8 +181,8 @@ class Router {
 
     /**
      * Pre-processes the route before navigation occurs.
-     * @param {RouteInterface} route
-     * @returns {string}
+     * @param {RouteType} route
+     * @returns {RouteType}
      * @throws {Error}
      */
     preprocessRoute(route) {
@@ -190,24 +209,35 @@ class Router {
     }
 
     renderRoute(_route = this.getCurrentRoute()) {
-        const route = this.preprocessRoute(_route);
+        const route = _route && this.preprocessRoute(_route);
         if (route && route !== _route && route.path !== '/404') {
             const url = route.url ?? route.path;
-            window.history.replaceState(url, null, url);
+            window.history.replaceState(url, '', url);
         }
         this._currentRoute = route;
-        this.routeNode = this._renderRoute(route);
+        route && (this.routeNode = this._renderRoute(route));
         return this.routeNode;
     }
 
-    // eslint-disable-next-line no-unused-vars
+    /**
+     * Authorizes the route.
+     * @param {RouteType} route
+     * @returns {boolean}
+     */
     authorizeRoute(route) {
+        console.log('Authorizing route:', route);
+        return true;
         /** @todo Implement User Context. */
         // const { accessGroups } = route;
         // const userGroup = Context.User.getAccessGroup();
         // return !accessGroups?.length || accessGroups.includes(userGroup);
     }
 
+    /**
+     * Renders the route.
+     * @param {RouteType} route
+     * @returns {HTMLElement}
+     */
     _renderRoute(route) {
         let node;
         if (typeof route.render === 'function') {
@@ -225,8 +255,13 @@ class Router {
         return node;
     }
 
+    /**
+     * Instantiates the route.
+     * @param {RouteType} route
+     * @returns {void}
+     */
     _instantiateRoute(route) {
-        if (!this.authorizeRoute(route)) {
+        if (!route || !this.authorizeRoute(route)) {
             this.go('/');
             // Context.Messenger.error('You are not authorized to access this page.');
             return;
@@ -253,6 +288,11 @@ class Router {
 
     // #endregion Routing
 
+    /**
+     * Adds an item to the history.
+     * @param {RouteType} route
+     * @returns {void}
+     */
     _addItemToHistory(route) {
         route.url && (route.url = sanitizeURL(route.url));
         this.history.push(route);
@@ -261,30 +301,44 @@ class Router {
     _initializeProperties() {
         /** @type {string} this._route */
         this._route = this.getRoute();
+        /** @type {string} */
         this.originalRoute = this._route;
         this._onNavigate = this._onNavigate.bind(this);
         this._onPopState = this._onPopState.bind(this);
-        this.Context = this._config.context;
     }
 
     _initializeRoutes() {
-        /** @type {Record<string, RouteInterface>} */
-        this.routesByName = {};
         this.getAllRoutesArray().forEach(route => this._setupRoute(route));
     }
 
+    /**
+     * Sets up a route.
+     * @param {RouteType | (() => RouteType)} route
+     */
     _setupRoute(route) {
-        this.routesByName[route.name || route.path] = route;
+        if (typeof route === 'function') route = route();
+        const key = route.name || route.path;
+        this.routesByName && key && (this.routesByName[key] = route);
     }
 
     initialize() {
         this._initializeRoute();
     }
 
+    /**
+     * Initializes the route.
+     * @param {string | undefined} route
+     * @returns {void}
+     */
     _initializeRoute(route = this._route) {
-        this._currentRoute = this._findRoute(route);
+        route && (this._currentRoute = this._findRoute(route));
     }
 
+    /**
+     * Finds a route by path.
+     * @param {string} _route
+     * @returns {RouteType | undefined}
+     */
     _findRoute(_route) {
         const routes = this.getAllRoutes();
         for (const [routePath, route] of Object.entries(routes)) {
@@ -296,28 +350,38 @@ class Router {
 
     /**
      * Adds a route.
-     * @type {RouteInterface} _route
-     * @returns {RouteInterface | undefined}
+     * @param {RouteType} _route
+     * @returns {RouteType | undefined}
+     * @throws {Error}
      */
     addRoute(_route) {
-        const route = mergeObjects(this._config.routeDefaults, _route);
-        if (!route?.path) {
-            throw new Error('Route path is required.');
-        }
-        if (!route?.type) {
-            throw new Error('Route type is required.');
-        }
+        const route = mergeObjects(this._config?.routeDefaults, _route);
+        if (!route?.path) throw new Error('Route path is required.');
+        if (!route?.type) throw new Error('Route type is required.');
         if (_route.path === this.getRoute()) {
             this._currentRoute = route;
         }
-        if (this.routeExists(route.path)) {
-            return;
-        }
-        this._config.routes[route.type][route.path] = route;
+        if (this.routeExists(route.path)) return;
+        this._addRoute(route);
         this._setupRoute(route);
         return route;
     }
 
+    /**
+     * Adds a route.
+     * @param {RouteType} route
+     * @returns {void}
+     * @throws {Error}
+     */
+    _addRoute(route) {
+        const type = route.type || '';
+        const path = route.path || '';
+        if (!type) throw new Error('Route type is required.');
+        const routes = this._config?.routes || {};
+        if (!routes[type]) routes[type] = {};
+        // @ts-ignore
+        routes[type][path] = route;
+    }
     /**
      * Replaces the current route content with the passed one, without any preprocessing or URL change.
      * @param {*} route
@@ -331,8 +395,13 @@ class Router {
         this.routeNode = node;
     }
 
+    /**
+     * Adds a database route.
+     * @param {string} path
+     * @returns {RouteType | undefined}
+     */
     addDbRoute(path) {
-        if (!this._config.hasDatabaseRoutes) {
+        if (!this._config?.hasDatabaseRoutes) {
             return;
         }
         const existing = this._findRoute(path);
@@ -345,20 +414,26 @@ class Router {
              * @todo Implement Page functionality and uncomment line below.
              */
             // component: Page,
-            pageContextConfig: {
+            pageConfig: {
                 id: path,
                 path
             }
         });
     }
 
+    /**
+     * Deletes a route.
+     * @param {string} path
+     * @returns {void}
+     */
     deleteRoute(path) {
         const route = this._findRoute(path);
-        if (!route) {
-            return;
+        if (!route) return;
+        if (route.type) {
+            const typeRoutes = this.getRoutesByType(route.type);
+            typeRoutes && route.path && delete typeRoutes[route.path];
         }
-        delete this._config.routes[route.type][route.path];
-        delete this.routesByName[route.name];
+        route.name && delete this.routesByName[route.name];
     }
 
     /**
@@ -394,18 +469,37 @@ class Router {
         return Object.values(this.getAllRoutes());
     }
 
+    /**
+     * Returns all the paths of the routes of a specific type.
+     * @param {RouteTypeType} routeType
+     * @returns {string[]}
+     */
+    getAllRoutePaths(routeType) {
+        const typeRoutes = this.getRoutesByType(routeType);
+        return (typeRoutes && Object.keys(typeRoutes).map(route => typeRoutes[route]?.path || '')) || [];
+    }
+
+    /**
+     * Returns the routes of a specific type.
+     * @param {RouteTypeType} routeType
+     * @returns {Record<string, RouteType> | undefined}
+     */
+    getRoutesByType(routeType) {
+        return this._config?.routes?.[routeType];
+    }
+
     getAllRoutes() {
         return {
-            ...this._config.routes.public,
-            ...this._config.routes.private,
-            ...this._config.routes.common,
-            ...this._config.routes.dev
+            ...(this._config?.routes?.public ?? {}),
+            ...(this._config?.routes?.private ?? {}),
+            ...(this._config?.routes?.common ?? {}),
+            ...(this._config?.routes?.dev ?? {})
         };
     }
 
     /**
      * Returns the previous URL.
-     * @returns {string}
+     * @returns {string | undefined}
      */
     getPreviousURL() {
         const historyItem = this.history[this.history.length - 2];
@@ -449,7 +543,7 @@ class Router {
      * @returns {boolean}
      */
     isPublicRoute(route = this.getRoute()) {
-        return matchPaths(route, this._routes.public);
+        return matchPaths(route, this.getAllRoutePaths('public'));
     }
 
     /**
@@ -458,7 +552,7 @@ class Router {
      * @returns {boolean}
      */
     isPrivateRoute(route = this.getRoute()) {
-        return matchPaths(route, this._routes.private);
+        return matchPaths(route, this.getAllRoutePaths('private'));
     }
 
     isPopState() {
@@ -471,7 +565,7 @@ class Router {
      * @returns {boolean}
      */
     isCommonRoute(route = this.getRoute()) {
-        return matchPaths(route, this._routes.common);
+        return matchPaths(route, this.getAllRoutePaths('common'));
     }
 
     /**
@@ -480,7 +574,7 @@ class Router {
      * @returns {boolean}
      */
     isDevRoute(route = this.getRoute()) {
-        return matchPaths(route, this._routes.dev);
+        return matchPaths(route, this.getAllRoutePaths('dev'));
     }
 
     /**
@@ -531,8 +625,8 @@ class Router {
                     route.isPopState = false;
                     route.url = url;
                 }
-                const event = window.history.pushState(url, null, url);
-                this._onRouteChange(route, event, config).then(resolve);
+                window.history.pushState(url, '', url);
+                this._onRouteChange(route, undefined, config).then(resolve);
             });
         });
     }
