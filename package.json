@@ -2,10 +2,9 @@
     "name": "@arpadroid/services",
     "version": "1.0.0",
     "description": "Global services",
-    "exports": "./dist/arpadroid-services.js",
     "module": "./dist/arpadroid-services.js",
-    "browser": "./dist/arpadroid-services.js",
-    "types:": "./dist/@types/types.compiled.d.ts",
+    "exports": "./dist/arpadroid-services.js",
+    "types": "./dist/@types/types.compiled.d.ts",
     "type": "module",
     "scripts": {
         "build": "node ./node_modules/@arpadroid/arpadroid/scripts/build-project.mjs --project=services --minify",

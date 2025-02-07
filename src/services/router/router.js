@@ -4,7 +4,7 @@
  * @typedef {import ('./router.types').HistoryType} HistoryType
  * @typedef {import ('./router.types').RouteTypeType}  RouteTypeType
  */
-import { sanitizeURL, observerMixin, mergeObjects, clearLazyQueue, dummyListener, dummySignal } from '@arpadroid/tools';
+import { sanitizeURL, observerMixin, mergeObjects, clearLazyQueue, dummyListener, dummySignal, dummyOff } from '@arpadroid/tools';
 import { matchPath, matchPaths, editURL, getPathParts, getURLPath, getParentPath } from '@arpadroid/tools';
 import APIService from '../apiService/apiService';
 
@@ -33,6 +33,7 @@ class Router {
     constructor(config = {}) {
         this.on = dummyListener;
         this.signal = dummySignal;
+        this.off = dummyOff;
         observerMixin(this);
         this.setConfig(config);
         this._initialize();
