@@ -4,8 +4,8 @@
  * @typedef {import ('./router.types').HistoryType} HistoryType
  * @typedef {import ('./router.types').RouteTypeType}  RouteTypeType
  */
-import { sanitizeURL, observerMixin, mergeObjects, clearLazyQueue, dummyListener, dummySignal, dummyOff } from '@arpadroid/tools';
-import { matchPath, matchPaths, editURL, getPathParts, getURLPath, getParentPath } from '@arpadroid/tools';
+import { observerMixin, mergeObjects, clearLazyQueue, dummyListener, dummySignal, dummyOff } from '@arpadroid/tools';
+import { sanitizeURL, matchPath, matchPaths, editURL, getPathParts, getURLPath, getParentPath } from '@arpadroid/tools';
 import APIService from '../apiService/apiService';
 
 // import { Page } from '../../modules/page/page.module.js';
@@ -129,9 +129,7 @@ class Router {
                 if (!(event instanceof PopStateEvent)) {
                     this._addItemToHistory(route);
                 }
-                /** @type {RouteType} */
                 this._previousRoute = this._currentRoute;
-                /** @type {RouteType} */
                 this._currentRoute = route;
                 if (!route?.componentInstance && route?.component) {
                     this._instantiateRoute(route);
