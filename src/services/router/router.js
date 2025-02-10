@@ -129,7 +129,9 @@ class Router {
                 if (!(event instanceof PopStateEvent)) {
                     this._addItemToHistory(route);
                 }
+                /** @type {RouteType} */
                 this._previousRoute = this._currentRoute;
+                /** @type {RouteType} */
                 this._currentRoute = route;
                 if (!route?.componentInstance && route?.component) {
                     this._instantiateRoute(route);
@@ -137,6 +139,7 @@ class Router {
             }
             const payload = { route, event, previousRoute: this._previousRoute, config };
             this.signal('route_change', payload);
+            // @ts-ignore
             this._onRouteChanged(payload);
             requestAnimationFrame(() => {
                 this.signal('route_changed', payload);
