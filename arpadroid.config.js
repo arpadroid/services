@@ -1,6 +1,10 @@
 const config = {
     buildTypes: true,
-    deps: []
+    deps: [],
+    logo: `           ┓    • ┓         •    
+  ┏┓┏┓┏┓┏┓┏┫┏┓┏┓┓┏┫  ┏┏┓┏┓┓┏┓┏┏┓┏
+  ┗┻┛ ┣┛┗┻┗┻┛ ┗┛┗┗┻  ┛┗ ┛ ┗┛┗┗┗ ┛
+------┛----------------------------`
 };
 
 export default config;
