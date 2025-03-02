@@ -26,7 +26,6 @@
     },
     "homepage": "https://github.com/arpadroid/services#readme",
     "devDependencies": {
-        "@arpadroid/module": "file:../module",
         "@babel/core": "^7.23.9",
         "@babel/plugin-syntax-import-assertions": "^7.23.3",
         "@babel/preset-env": "^7.23.9",
@@ -37,6 +36,7 @@
         "typescript": "^5.4.2"
     },
     "peerDependencies": {
+        "@arpadroid/module": "file:../module",
         "@arpadroid/tools": "file:../tools"
     }
 }
