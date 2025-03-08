@@ -139,7 +139,6 @@ class Router {
             }
             const payload = { route, event, previousRoute: this._previousRoute, config };
             this.signal('route_change', payload);
-            // @ts-ignore
             this._onRouteChanged(payload);
             requestAnimationFrame(() => {
                 this.signal('route_changed', payload);
@@ -381,7 +380,6 @@ class Router {
         if (!type) throw new Error('Route type is required.');
         const routes = this._config?.routes || {};
         if (!routes[type]) routes[type] = {};
-        // @ts-ignore
         routes[type][path] = route;
     }
     /**
