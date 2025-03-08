@@ -6,9 +6,6 @@ import { mergeObjects, editURL } from '@arpadroid/tools';
 
 class APIService {
     /**
-     * @static
-     */
-    /**
      * Returns the configuration for the service.
      * @param {APIServiceConfigType} config
      * @returns {APIServiceConfigType}
@@ -156,7 +153,7 @@ class APIService {
             try {
                 rv = JSON.parse(rv);
             } catch (err) {
-                // nothing to show
+                console.error(err);
             }
         }
         response.value = rv;
