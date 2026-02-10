@@ -9,8 +9,8 @@
     "scripts": {
         "build": "arpadroid-build --minify",
         "prepublish": "npm run build",
-        "clean": "rm -rf ./dist ./node_modules ./package-lock.json",
-        "test": "arpadroid-test --jest --port=6018"
+        "clean": "arpadroid-clean",
+        "test": "arpadroid-test --jest"
     },
     "repository": {
         "type": "git",
