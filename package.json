@@ -8,7 +8,6 @@
     "type": "module",
     "scripts": {
         "build": "arpadroid-build --minify",
-        "prepublish": "npm run build",
         "clean": "arpadroid-clean",
         "test": "arpadroid-test --jest"
     },
