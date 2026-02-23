@@ -3,13 +3,21 @@
     "version": "1.0.0",
     "description": "Global services",
     "module": "./dist/arpadroid-services.js",
-    "exports": "./dist/arpadroid-services.js",
+    "exports": {
+        ".": {
+            "types": "./dist/@types/types.compiled.d.ts",
+            "import": "./dist/arpadroid-services.js"
+        }
+    },
     "types": "./dist/@types/types.compiled.d.ts",
     "type": "module",
     "scripts": {
         "build": "arpadroid-build --minify",
         "clean": "arpadroid-clean",
-        "test": "arpadroid-test --jest"
+        "test": "arpadroid-test --jest",
+        "t": "npm test -- --slim",
+        "initialize": "arpadroid-initialize",
+        "check:types": "arpadroid-check-types"
     },
     "repository": {
         "type": "git",
