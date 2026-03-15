@@ -89,6 +89,17 @@ class Router {
     }
 
     /**
+     * Resolves the navigation link element from the event target.
+     * @param {HTMLElement | null} targetNode
+     */
+    getNavigationLink(targetNode) {
+        return (
+            targetNode instanceof HTMLElement &&
+            (targetNode.querySelector('a') || targetNode.closest('a') || targetNode)
+        );
+    }
+
+    /**
      * Handles the navigation event.
      * @param {MouseEvent} event
      * @returns {boolean}
@@ -101,8 +112,9 @@ class Router {
         //     return;
         // }
         const target = event.target;
-        const link = target instanceof HTMLElement && (target.closest('a') ?? target);
-        if (link && link instanceof HTMLLinkElement) {
+        if (!(target instanceof HTMLElement)) return false;
+        const link = this.getNavigationLink(target);
+        if (link && link instanceof HTMLAnchorElement && link.href) {
             const route = this._findRoute(link.href);
             if (route) {
                 route.url = link.href;
