@@ -89,7 +89,6 @@ class Router {
     }
 
     /**
-     * Resolves the navigation link element from the event target.
      * @param {HTMLElement | null} targetNode
      */
     getNavigationLink(targetNode) {
